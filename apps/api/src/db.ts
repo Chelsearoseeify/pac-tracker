@@ -1,13 +1,79 @@
-import { createClient } from '@libsql/client'
 import type { Config, Etf, Semester, SnapshotRaw } from '@pac/core'
 
-export const db = createClient({
-  url: process.env.TURSO_DATABASE_URL!,
-  authToken: process.env.TURSO_AUTH_TOKEN,
-})
+// ─── Minimal Turso hrana-over-HTTP client ─────────────────────────────────────
+// @libsql/client@0.14 mis-sends the auth token on Vercel's runtime (Turso 401),
+// while a plain POST to /v2/pipeline with a Bearer header works. So we talk the
+// hrana v2 HTTP protocol directly — same wire format, no broken dependency.
 
-// Embedded DDL (kept in sync with schema.sql) so migrations run without file IO
-// on serverless. Idempotent: safe to run on every cold start.
+type Value = number | string | null
+type Cell = { type: 'null' | 'integer' | 'float' | 'text' | 'blob'; value?: string | number }
+type Row = Record<string, unknown>
+export interface ResultSet { rows: Row[]; rowsAffected: number }
+
+const host = () => (process.env.TURSO_DATABASE_URL ?? '').replace(/^libsql:\/\//, 'https://').replace(/^wss:\/\//, 'https://').replace(/\/$/, '')
+const token = () => process.env.TURSO_AUTH_TOKEN ?? ''
+
+function toArg(v: Value): Cell {
+  if (v === null || v === undefined) return { type: 'null' }
+  if (typeof v === 'number') return Number.isInteger(v) ? { type: 'integer', value: String(v) } : { type: 'float', value: v }
+  return { type: 'text', value: String(v) }
+}
+
+function fromCell(cell: Cell): unknown {
+  switch (cell.type) {
+    case 'null': return null
+    case 'integer': return Number(cell.value)
+    case 'float': return cell.value as number
+    default: return cell.value as string
+  }
+}
+
+interface ExecResp {
+  type: 'execute'
+  result: { cols: { name: string }[]; rows: Cell[][]; affected_row_count: number }
+}
+type PipelineResult = { type: 'ok'; response?: ExecResp } | { type: 'error'; error: { message: string } }
+
+async function pipeline(stmts: { sql: string; args?: Value[] }[]): Promise<ResultSet[]> {
+  const res = await fetch(`${host()}/v2/pipeline`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      requests: [
+        ...stmts.map((s) => ({ type: 'execute', stmt: { sql: s.sql, args: (s.args ?? []).map(toArg) } })),
+        { type: 'close' },
+      ],
+    }),
+  })
+  if (!res.ok) throw new Error(`Turso HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`)
+  const body = (await res.json()) as { results: PipelineResult[] }
+  return body.results
+    .filter((r) => r.type === 'error' || (r as { response?: { type: string } }).response?.type === 'execute')
+    .map((r) => {
+      if (r.type === 'error') throw new Error(r.error.message)
+      const result = (r as { response: ExecResp }).response.result
+      const rows = result.rows.map((cells) => {
+        const obj: Row = {}
+        result.cols.forEach((col, i) => { obj[col.name] = fromCell(cells[i]) })
+        return obj
+      })
+      return { rows, rowsAffected: result.affected_row_count }
+    })
+}
+
+export const db = {
+  async execute(stmt: string | { sql: string; args?: Value[] }): Promise<ResultSet> {
+    const s = typeof stmt === 'string' ? { sql: stmt } : stmt
+    const [r] = await pipeline([s])
+    return r
+  },
+  async executeMultiple(sql: string): Promise<void> {
+    const stmts = sql.split(';').map((s) => s.trim()).filter(Boolean).map((s) => ({ sql: s }))
+    if (stmts.length) await pipeline(stmts)
+  },
+}
+
+// ─── Schema bootstrap (idempotent) ────────────────────────────────────────────
 const DDL = `
 CREATE TABLE IF NOT EXISTS config (
   id TEXT PRIMARY KEY DEFAULT 'current',
@@ -47,8 +113,6 @@ export async function ensureSchema() {
   await db.executeMultiple(DDL)
   migrated = true
 }
-
-type Row = Record<string, unknown>
 
 export const rowToConfig = (r: Row): Config => ({
   pacMensile: r.pac_mensile as number,

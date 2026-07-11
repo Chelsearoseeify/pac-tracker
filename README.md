@@ -46,18 +46,23 @@ packages/core   tipi + motore di calcolo puro, condiviso e testato
 ```bash
 pnpm install
 
-# 1) Terminale A — API su un file SQLite locale (nessun cloud richiesto in dev)
-TURSO_DATABASE_URL=file:./local.db pnpm --filter @pac/api dev   # :3000
+# 1) Terminale A — API (punta al DB Turso remoto; l'app parla hrana su HTTP)
+export TURSO_DATABASE_URL=libsql://<tuo-db>.turso.io
+export TURSO_AUTH_TOKEN=<token>
+pnpm --filter @pac/api dev            # :3000
 
 # 2) Terminale B — web (proxy /api -> :3000)
-pnpm --filter @pac/web dev                                      # :5173
+pnpm --filter @pac/web dev            # :5173
 ```
 
-Test del motore di calcolo e delle rotte:
+> Il layer DB (`apps/api/src/db.ts`) parla il protocollo **hrana v2 su HTTP** direttamente
+> (`@libsql/client` invia male il token sul runtime Vercel → 401). Quindi in dev serve
+> un URL Turso remoto: non c'è più il fallback `file:` SQLite locale.
+
+Test del motore di calcolo:
 
 ```bash
 pnpm --filter @pac/core test
-TURSO_DATABASE_URL=file:/tmp/smoke.db pnpm --filter @pac/api exec tsx src/smoke.ts
 ```
 
 ## Deploy gratuito (Vercel + Turso)

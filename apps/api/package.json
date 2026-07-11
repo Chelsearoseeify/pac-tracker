@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@pac/core": "workspace:*",
-    "@libsql/client": "^0.14.0",
     "hono": "^4.0.0"
   },
   "devDependencies": {

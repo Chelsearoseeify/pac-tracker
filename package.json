@@ -1,13 +1,19 @@
 {
   "name": "pac-tracker-monorepo",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
     "lint": "turbo lint",
     "check": "turbo check"
   },
+  "dependencies": {
+    "@pac/core": "workspace:*",
+    "hono": "^4.0.0"
+  },
   "devDependencies": {
+    "esbuild": "^0.28.0",
     "turbo": "^2.0.0"
   },
   "packageManager": "pnpm@10.30.3",

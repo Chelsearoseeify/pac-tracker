@@ -6,3 +6,5 @@ dist
 .vercel
 *.log
 .DS_Store
+.env*
+api/index.js
