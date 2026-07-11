@@ -1,0 +1,9 @@
+{
+  "buildCommand": "pnpm turbo build",
+  "outputDirectory": "apps/web/dist",
+  "installCommand": "pnpm install",
+  "framework": null,
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/apps/api/src/index" }
+  ]
+}

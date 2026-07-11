@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 210 40% 98%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --muted: 210 40% 94%;
+  --muted-foreground: 215 16% 42%;
+  --primary: 222 47% 20%;
+  --primary-foreground: 210 40% 98%;
+  --border: 214 32% 88%;
+  --input: 214 32% 84%;
+  --ring: 222 47% 40%;
+  --positive: 142 71% 38%;
+  --negative: 0 72% 48%;
+}
+
+.dark {
+  --background: 222 47% 9%;
+  --foreground: 210 40% 96%;
+  --card: 222 40% 13%;
+  --card-foreground: 210 40% 96%;
+  --muted: 217 33% 20%;
+  --muted-foreground: 215 20% 65%;
+  --primary: 210 40% 96%;
+  --primary-foreground: 222 47% 11%;
+  --border: 217 33% 22%;
+  --input: 217 33% 26%;
+  --ring: 213 27% 70%;
+  --positive: 142 65% 52%;
+  --negative: 0 72% 62%;
+}
+
+* { border-color: hsl(var(--border)); }
+
+body {
+  margin: 0;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Hide number input spinners — we format money ourselves. */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+input[type='number'] { -moz-appearance: textfield; }
