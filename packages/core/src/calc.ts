@@ -26,31 +26,31 @@ const round2 = (n: number) => Math.round(n * 100) / 100
  * Pure: same inputs -> same outputs, no side effects. This is the single
  * source of truth for the spreadsheet math, shared by API and web.
  *
- * Formulas (verified 1:1 against the reference sheet, S&P500 example):
- *   valTeorico    = valAttuale + pac*6            2266 + 68*6       = 2674
- *   differenza    = valReale - valTeorico         3500 - 2674       =  826
- *   performance   = valReale - (totVersato+pac*6) 3500 - (2266+408) =  826
- *   weight6m      = valReale / Σ valReale         3500 / 6785       = 51.58%
- *   bilanciamento = targetPct - weight6m          45.32% - 51.58%  = -6.264%
- *   nuovoPac      = round(pac * (1 + bilanciamento)) 68 * 0.93736 -> 64 (whole €)
+ * NUOVO PAC rebalances the monthly budget toward the FIXED target weights:
+ * underweight funds get more, overweight get less, and the split is derived
+ * purely from targetPct + current drift — it does NOT depend on last
+ * semester's pac. Because Σ targetPct = 1 and Σ bilanciamento = 0, the row
+ * totals sum to pacMensile by construction (no normalization step needed).
  *
- * @param normalizeTo  when set (e.g. 150), scales every nuovoPac so the total
- *   equals it — the display then matches exactly what the rollover will write.
+ * Formulas (S&P500 example, pacMensile = 150, Σ valReale = 6785):
+ *   valTeorico    = valAttuale + pac*6            2266 + 68*6      = 2674
+ *   differenza    = valReale - valTeorico         3500 - 2674      =  826
+ *   performance   = valReale - (totVersato+pac*6) 3500 - (2266+408)=  826
+ *   weight6m      = valReale / Σ valReale         3500 / 6785      = 51.58%
+ *   bilanciamento = targetPct - weight6m          45.32% - 51.58%  = -6.264%
+ *   nuovoPac      = round(pacMensile*(targetPct+bilanciamento))
+ *                                                 150*(0.4532-0.0626) -> 59
+ *
+ * @param pacMensile  the fixed total monthly budget to split (e.g. 150).
  */
 export function computeSemester(
   snapshots: SnapshotRaw[],
   names: Record<string, string>,
-  normalizeTo?: number,
+  pacMensile: number,
 ): EtfComputed[] {
   const totalPac = snapshots.reduce((s, r) => s + r.pac, 0)
   const allReale = snapshots.every((r) => r.valReale != null)
   const sumReale = allReale ? snapshots.reduce((s, r) => s + (r.valReale as number), 0) : null
-
-  // Raw nuovoPac total, needed to compute the normalization factor.
-  const sumNuovo = sumReale
-    ? snapshots.reduce((s, r) => s + r.pac * (1 + (r.targetPct - (r.valReale as number) / sumReale)), 0)
-    : 0
-  const factor = normalizeTo != null && sumNuovo !== 0 ? normalizeTo / sumNuovo : 1
 
   const rows = snapshots.map((r) => {
     const valTeorico = r.valAttuale + r.pac * MONTHS
@@ -69,7 +69,8 @@ export function computeSemester(
       performance = r.valReale - (r.totVersato + r.pac * MONTHS)
       weight6m = r.valReale / sumReale
       bilanciamento = r.targetPct - weight6m
-      nuovoPac = r.pac * (1 + bilanciamento) * factor
+      // Rebalance the budget toward the fixed target, correcting the drift.
+      nuovoPac = pacMensile * (r.targetPct + bilanciamento)
     }
 
     return {
@@ -85,20 +86,17 @@ export function computeSemester(
     }
   })
 
-  // NUOVO PAC is always a whole number of euros. Round each, then (when
-  // normalizeTo is set) absorb the rounding residual into the largest PAC so
-  // the total lands EXACTLY on normalizeTo. rollover consumes these values
-  // directly, so display and history stay in lockstep.
+  // NUOVO PAC is always a whole number of euros. The raw values already sum to
+  // pacMensile, so after rounding we only absorb the small rounding residual
+  // into the largest PAC to land the total EXACTLY on pacMensile. rollover
+  // consumes these values directly, so display and history stay in lockstep.
   const withPac = rows.filter((r) => r.nuovoPac != null)
   if (withPac.length) {
     for (const r of withPac) r.nuovoPac = Math.round(r.nuovoPac as number)
-    if (normalizeTo != null) {
-      const target = Math.round(normalizeTo)
-      const residual = target - withPac.reduce((s, r) => s + (r.nuovoPac as number), 0)
-      if (residual !== 0) {
-        const big = withPac.reduce((a, b) => ((b.nuovoPac as number) > (a.nuovoPac as number) ? b : a))
-        big.nuovoPac = (big.nuovoPac as number) + residual
-      }
+    const residual = Math.round(pacMensile) - withPac.reduce((s, r) => s + (r.nuovoPac as number), 0)
+    if (residual !== 0) {
+      const big = withPac.reduce((a, b) => ((b.nuovoPac as number) > (a.nuovoPac as number) ? b : a))
+      big.nuovoPac = (big.nuovoPac as number) + residual
     }
   }
 
@@ -135,19 +133,15 @@ export function totals(rows: EtfComputed[]) {
  *   %TARGET      carried unchanged (edit later only to re-strategize)
  *   VAL REALE    cleared (null) for the new semester
  *
- * @param normalizeTo  if set, scales nuovoPac so the new total equals this
- *   value (e.g. 150). Omit to stay faithful to the sheet, where the total
- *   drifts (147.17 in the example).
+ * @param pacMensile  the fixed monthly budget the new PAC split sums to.
  */
 export function rollover(
   closed: SnapshotRaw[],
   names: Record<string, string>,
   nextSemesterId: string,
-  normalizeTo?: number,
+  pacMensile: number,
 ): SnapshotRaw[] {
-  // nuovoPac already carries the normalization factor when normalizeTo is set,
-  // so rollover writes exactly what the preview shows — no second scaling.
-  const computed = computeSemester(closed, names, normalizeTo)
+  const computed = computeSemester(closed, names, pacMensile)
   if (computed.some((r) => r.nuovoPac == null)) {
     throw new Error('Cannot roll over: some VAL REALE are still empty')
   }

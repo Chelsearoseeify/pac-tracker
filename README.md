@@ -26,12 +26,14 @@ DIFFERENZA    = VAL REALE − VAL TEORICO          (guadagno di mercato del seme
 PERFORMANCE   = VAL REALE − (TOT VERSATO + PAC × 6)   (netto vero: tutto il versato dall'inizio, PAC compreso)
 % TARGET 6M   = VAL REALE / Σ VAL REALE          (peso reale attuale)
 BILANCIAMENTO = % TARGET − % TARGET 6M           (>0 = sottopeso → compra di più)
-NUOVO PAC     = PAC × (1 + BILANCIAMENTO)
+NUOVO PAC     = round( PAC MENSILE × (% TARGET + BILANCIAMENTO) )
 ```
 
-> Nota: il totale NUOVO PAC **deriva** (es. €147,17 invece di €150), perché
-> `NUOVO PAC = PAC × (1+bil)` non si somma a costante. In Setup puoi attivare
-> **"Normalizza a PAC mensile"** per ricondurlo al totale ogni giro.
+> Il NUOVO PAC ribilancia il budget mensile verso i **% target fissi**: i fondi
+> sottopeso ricevono di più, quelli soprappeso di meno. Dipende solo da % target
+> e drift attuale — **non** dal PAC del semestre precedente. Poiché Σ % target = 1
+> e Σ BILANCIAMENTO = 0, i NUOVO PAC **sommano sempre esattamente al PAC mensile**
+> (es. €150), a euro intero. Nessuna normalizzazione necessaria.
 
 ## Struttura
 

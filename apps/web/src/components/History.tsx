@@ -13,7 +13,7 @@ type Loaded = { semester: Semester } & SemesterData
 
 const eurTick = (n: number) => '€' + Math.round(n / 1000) + 'k'
 
-export function History({ semesters, etfs }: { semesters: Semester[]; etfs: Etf[] }) {
+export function History({ semesters, etfs, pacMensile }: { semesters: Semester[]; etfs: Etf[]; pacMensile: number }) {
   const [loaded, setLoaded] = useState<Loaded[]>([])
   const [openId, setOpenId] = useState<string | null>(null)
 
@@ -132,7 +132,7 @@ export function History({ semesters, etfs }: { semesters: Semester[]; etfs: Etf[
               </button>
               {openId === l.semester.id && (
                 <div className="mt-2">
-                  <SemesterTable data={l} editable={false} onPatch={() => {}} />
+                  <SemesterTable data={l} editable={false} onPatch={() => {}} pacMensile={pacMensile} />
                 </div>
               )}
             </div>

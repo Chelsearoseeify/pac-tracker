@@ -23,7 +23,6 @@ export function SetupForm({ onDone }: { onDone: () => void }) {
   const [rows, setRows] = useState<Row[]>(DEFAULT_ROWS)
   const [pacMensile, setPacMensile] = useState('150')
   const [dataAvvio, setDataAvvio] = useState(() => new Date().toISOString().slice(0, 10))
-  const [normalizePac, setNormalizePac] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -42,7 +41,6 @@ export function SetupForm({ onDone }: { onDone: () => void }) {
       const payload: SetupPayload = {
         pacMensile: Number(pacMensile),
         dataAvvio,
-        normalizePac,
         etfs: rows
           .filter((r) => r.name.trim())
           .map((r) => ({
@@ -68,18 +66,12 @@ export function SetupForm({ onDone }: { onDone: () => void }) {
         <strong>versato iniziale</strong> restano fissi per sempre. Li rivedrai tra 20 anni.
       </p>
 
-      <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Field label="PAC mensile totale (€)">
+      <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Field label="PAC mensile totale (€)" hint="ribilanciato sui target ogni semestre">
           <Input type="number" value={pacMensile} onChange={(e) => setPacMensile(e.target.value)} />
         </Field>
         <Field label="Data avvio PAC">
           <Input type="date" value={dataAvvio} onChange={(e) => setDataAvvio(e.target.value)} />
-        </Field>
-        <Field label="Totale PAC" hint={normalizePac ? 'ricondotto a €150 ogni giro' : 'lasciato derivare (fedele Excel)'}>
-          <label className="flex items-center gap-2 py-2 text-sm">
-            <input type="checkbox" checked={normalizePac} onChange={(e) => setNormalizePac(e.target.checked)} />
-            Normalizza a PAC mensile
-          </label>
         </Field>
       </div>
 

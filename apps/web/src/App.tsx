@@ -64,7 +64,7 @@ export function App() {
                 </div>
                 <CloseDialog semesterId={current.id} data={currentData} onConfirm={close} />
               </div>
-              <SemesterTable data={currentData} editable onPatch={patch} />
+              <SemesterTable data={currentData} editable onPatch={patch} pacMensile={state.config?.pacMensile ?? 150} />
             </>
           ) : (
             <p className="text-muted-foreground">Nessun semestre aperto.</p>
@@ -72,7 +72,7 @@ export function App() {
         </Tabs.Content>
 
         <Tabs.Content value="history">
-          <History semesters={semesters} etfs={etfs} />
+          <History semesters={semesters} etfs={etfs} pacMensile={state.config?.pacMensile ?? 150} />
         </Tabs.Content>
       </Tabs.Root>
     </Shell>
@@ -94,7 +94,7 @@ function Shell({ children, onReset }: { children: React.ReactNode; onReset?: () 
   return (
     <div className="min-h-screen">
       <header className="border-b border-border bg-card">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
+        <div className="flex w-full items-center justify-between px-4 py-4">
           <div>
             <h1 className="text-xl font-bold">PAC Tracker</h1>
             <p className="text-xs text-muted-foreground">Ribilanciamento portafoglio · aggiornamento semestrale</p>
@@ -106,7 +106,7 @@ function Shell({ children, onReset }: { children: React.ReactNode; onReset?: () 
           )}
         </div>
       </header>
-      <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
+      <main className="w-full px-4 py-6">{children}</main>
     </div>
   )
 }

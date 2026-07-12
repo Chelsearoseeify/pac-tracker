@@ -10,7 +10,6 @@ export interface SemesterData {
 export interface AppState {
   configured: boolean
   config?: Config
-  normalizePac?: boolean
   etfs?: Etf[]
   semesters?: Semester[]
   current?: Semester | null
@@ -32,7 +31,6 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
 export interface SetupPayload {
   pacMensile: number
   dataAvvio: string
-  normalizePac: boolean
   etfs: { name: string; targetPct: number; versatoIniziale: number; initialPac?: number }[]
 }
 

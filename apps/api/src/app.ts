@@ -55,19 +55,15 @@ async function orderedSnapshots(semesterId: string): Promise<SnapshotRaw[]> {
   return etfs.map((e) => byId.get(e.id)).filter((s): s is SnapshotRaw => !!s)
 }
 
-/** normalizeTo when the "normalize PAC" flag is set — makes the displayed
- *  NUOVO PAC total match what a rollover would actually write. */
-async function normalizeTarget(): Promise<number | undefined> {
-  const r = await db.execute("SELECT normalize_pac, pac_mensile FROM config WHERE id = 'current'")
-  if (r.rows.length === 0) return undefined
-  const c = r.rows[0] as Record<string, unknown>
-  return c.normalize_pac === 1 ? (c.pac_mensile as number) : undefined
+/** The fixed monthly budget the NUOVO PAC split rebalances toward. */
+async function pacMensile(): Promise<number> {
+  const r = await db.execute("SELECT pac_mensile FROM config WHERE id = 'current'")
+  return r.rows.length ? ((r.rows[0] as Record<string, unknown>).pac_mensile as number) : 150
 }
 
 async function computedSemester(semesterId: string) {
   const names = await getNames()
-  const normalizeTo = await normalizeTarget()
-  const rows = computeSemester(await orderedSnapshots(semesterId), names, normalizeTo)
+  const rows = computeSemester(await orderedSnapshots(semesterId), names, await pacMensile())
   return { rows, totals: totals(rows) }
 }
 
@@ -87,14 +83,13 @@ app.get('/state', async (c) => {
   if (cfgR.rows.length === 0) return c.json({ configured: false })
 
   const config = rowToConfig(cfgR.rows[0] as Record<string, unknown>)
-  const normalizePac = (cfgR.rows[0] as Record<string, unknown>).normalize_pac === 1
   const etfs = await getEtfs()
   const semR = await db.execute('SELECT * FROM semesters ORDER BY id ASC')
   const semesters = semR.rows.map(rowToSemester)
   const current = semesters.find((s) => s.status === 'open') ?? null
   const currentData = current ? await computedSemester(current.id) : null
 
-  return c.json({ configured: true, config, normalizePac, etfs, semesters, current, currentData })
+  return c.json({ configured: true, config, etfs, semesters, current, currentData })
 })
 
 // ─── setup: day-zero init ────────────────────────────────────────────────────
@@ -102,15 +97,14 @@ app.post('/setup', async (c) => {
   const body = await c.req.json() as {
     pacMensile: number
     dataAvvio: string
-    normalizePac?: boolean
     etfs: { name: string; targetPct: number; versatoIniziale: number; initialPac?: number }[]
   }
   const existing = await db.execute("SELECT id FROM config WHERE id = 'current'")
   if (existing.rows.length > 0) return c.json({ error: 'Already configured. Reset first.' }, 409)
 
   await db.execute({
-    sql: `INSERT INTO config (id, pac_mensile, data_avvio, normalize_pac) VALUES ('current', ?, ?, ?)`,
-    args: [body.pacMensile, body.dataAvvio, body.normalizePac ? 1 : 0],
+    sql: `INSERT INTO config (id, pac_mensile, data_avvio) VALUES ('current', ?, ?)`,
+    args: [body.pacMensile, body.dataAvvio],
   })
 
   const etfs: Etf[] = []
@@ -189,13 +183,9 @@ app.post('/semesters/:id/close', async (c) => {
     return c.json({ error: 'Compila tutti i VAL REALE prima di chiudere' }, 400)
   }
 
-  const cfgR = await db.execute("SELECT normalize_pac, pac_mensile FROM config WHERE id = 'current'")
-  const cfg = cfgR.rows[0] as Record<string, unknown>
-  const normalizeTo = cfg.normalize_pac === 1 ? (cfg.pac_mensile as number) : undefined
-
   const nextId = nextSemesterId(id)
   const names = await getNames()
-  const nextSnaps = rollover(snaps, names, nextId, normalizeTo)
+  const nextSnaps = rollover(snaps, names, nextId, await pacMensile())
 
   const now = new Date().toISOString()
   await db.execute({ sql: `UPDATE semesters SET status = 'closed', closed_at = ? WHERE id = ?`, args: [now, id] })

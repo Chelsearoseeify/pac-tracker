@@ -1,5 +1,8 @@
-// End-to-end route smoke test against a local libSQL file DB.
-// Run: TURSO_DATABASE_URL=file:/tmp/pac-smoke.db pnpm --filter @pac/api exec tsx src/smoke.ts
+// End-to-end route smoke test. The DB client is hrana-over-HTTP only (no file:
+// URLs), so point it at a remote Turso DB or a local `turso dev` server:
+//   turso dev --db-file /tmp/pac-smoke.db   # serves :8080
+//   TURSO_DATABASE_URL=http://127.0.0.1:8080 TURSO_AUTH_TOKEN=x \
+//     pnpm --filter @pac/api exec tsx src/smoke.ts
 import { app } from './app.js'
 
 let fail = 0
@@ -25,7 +28,6 @@ r = await req('/setup', {
   body: JSON.stringify({
     pacMensile: 150,
     dataAvvio: '2026-01-15',
-    normalizePac: false,
     etfs: [
       { name: 'S&P500', targetPct: 0.4532, versatoIniziale: 2266, initialPac: 68 },
       { name: 'DEV EX-USA', targetPct: 0.24, versatoIniziale: 1200, initialPac: 36 },
@@ -56,8 +58,8 @@ for (let i = 0; i < etfIds.length; i++) {
 
 r = await req('/semesters/2026-H1')
 check(Math.abs(r.body.rows[0].performance - 826) < 0.01, 'S&P performance 826 (net)')
-check(Math.abs(r.body.rows[0].nuovoPac - 63.74) < 0.02, 'S&P nuovoPac 63.74')
-check(Math.abs(r.body.totals.nuovoPac - 147.17) < 0.05, 'total nuovoPac drifts 147.17')
+check(r.body.rows[0].nuovoPac === 59, 'S&P nuovoPac 150*(0.4532-0.0626)=58.58->59')
+check(r.body.totals.nuovoPac === 150, 'total nuovoPac = 150 exactly (self-normalizing)')
 
 r = await req('/semesters/2026-H1/close', { method: 'POST' })
 check(r.status === 201 && r.body.nextSemesterId === '2026-H2', 'close -> 2026-H2')
@@ -65,7 +67,7 @@ check(r.status === 201 && r.body.nextSemesterId === '2026-H2', 'close -> 2026-H2
 r = await req('/semesters/2026-H2')
 check(Math.abs(r.body.rows[0].valAttuale - 3500) < 0.01, 'H2 valAttuale = old valReale')
 check(Math.abs(r.body.rows[0].totVersato - 2674) < 0.01, 'H2 totVersato +408')
-check(Math.abs(r.body.rows[0].pac - 63.74) < 0.02, 'H2 pac = old nuovoPac')
+check(r.body.rows[0].pac === 59, 'H2 pac = old nuovoPac (59)')
 
 r = await req('/state')
 check(r.body.current.id === '2026-H2', 'current now 2026-H2')

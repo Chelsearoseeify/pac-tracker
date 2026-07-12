@@ -47,10 +47,11 @@ const TD = ({ children, className }: { children?: React.ReactNode; className?: s
   <td className={cn('whitespace-nowrap px-3 py-2 text-right tabular-nums', className)}>{children}</td>
 )
 
-export function SemesterTable({ data, editable, onPatch }: {
+export function SemesterTable({ data, editable, onPatch, pacMensile }: {
   data: SemesterData
   editable: boolean
   onPatch: (etfId: string, patch: Record<string, number | null>) => void
+  pacMensile: number
 }) {
   const { rows, totals } = data
   const hasNegativePac = rows.some((r) => r.nuovoPac != null && r.nuovoPac < 0)
@@ -73,6 +74,10 @@ export function SemesterTable({ data, editable, onPatch }: {
             <TH sub="peso oggi">% Attuale</TH>
             <TH sub="target − oggi">Bilanciamento</TH>
             <TH sub="pross. sem.">Nuovo PAC</TH>
+            <th className="px-3 py-2 text-left align-bottom font-medium text-muted-foreground">
+              Calcolo
+              <span className="block text-[10px] font-normal">pac mensile × (%target + bilanciamento)</span>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -97,6 +102,11 @@ export function SemesterTable({ data, editable, onPatch }: {
               <TD className={cn('font-semibold', r.nuovoPac != null && r.nuovoPac < 0 && 'text-negative')}>
                 {fmtEur0(r.nuovoPac)}
               </TD>
+              <td className="whitespace-nowrap px-3 py-2 text-left text-xs text-muted-foreground tabular-nums">
+                {r.nuovoPac == null || r.bilanciamento == null
+                  ? '—'
+                  : `${fmtEur0(pacMensile)} × (${fmtPct(r.targetPct)} ${r.bilanciamento >= 0 ? '+' : '−'} ${fmtPct(Math.abs(r.bilanciamento))}) = ${fmtEur(pacMensile * (r.targetPct + r.bilanciamento))} → ${fmtEur0(r.nuovoPac)}`}
+              </td>
             </tr>
           ))}
         </tbody>
@@ -115,6 +125,7 @@ export function SemesterTable({ data, editable, onPatch }: {
             <TD>{fmtPct(totals.weight6m)}</TD>
             <TD />
             <TD>{fmtEur0(totals.nuovoPac)}</TD>
+            <td />
           </tr>
         </tfoot>
       </table>
