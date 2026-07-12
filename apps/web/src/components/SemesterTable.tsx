@@ -61,7 +61,7 @@ const GainCell = ({ value, base }: { value: number | null; base: number | null |
   const pct = value != null && base != null && base !== 0 ? value / base : null
   return (
     <TD>
-      <div><Signed v={value} /></div>
+      <div className="tabular-nums">{fmtSigned(value)}</div>
       {pct != null && <div className="text-[11px]"><Signed v={pct} kind="pct" /></div>}
     </TD>
   )
