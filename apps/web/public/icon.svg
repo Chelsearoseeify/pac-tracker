@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4f46e5"/>
+      <stop offset="1" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <!-- rebalancing bars growing toward target -->
+  <g fill="#ffffff">
+    <rect x="120" y="300" width="52" height="92" rx="10"/>
+    <rect x="200" y="248" width="52" height="144" rx="10"/>
+    <rect x="280" y="196" width="52" height="196" rx="10"/>
+    <rect x="360" y="140" width="52" height="252" rx="10"/>
+  </g>
+  <!-- target line -->
+  <path d="M104 132 L408 108" stroke="#c7d2fe" stroke-width="14" stroke-linecap="round" stroke-dasharray="4 26"/>
+</svg>
