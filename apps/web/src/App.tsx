@@ -5,6 +5,7 @@ import { api, type AppState } from '@/lib/api'
 import { SetupForm } from './components/SetupForm'
 import { SemesterTable } from './components/SemesterTable'
 import { History } from './components/History'
+import { Charts } from './components/Charts'
 import { CloseDialog } from './components/CloseDialog'
 import { Button } from './components/ui'
 
@@ -49,6 +50,7 @@ export function App() {
       <Tabs.Root defaultValue="current">
         <Tabs.List className="mb-5 flex gap-1 border-b border-border">
           <TabTrigger value="current">Semestre corrente</TabTrigger>
+          <TabTrigger value="charts">Grafici</TabTrigger>
           <TabTrigger value="history">Storico</TabTrigger>
         </Tabs.List>
 
@@ -69,6 +71,10 @@ export function App() {
           ) : (
             <p className="text-muted-foreground">Nessun semestre aperto.</p>
           )}
+        </Tabs.Content>
+
+        <Tabs.Content value="charts">
+          <Charts semesters={semesters} etfs={etfs} />
         </Tabs.Content>
 
         <Tabs.Content value="history">
