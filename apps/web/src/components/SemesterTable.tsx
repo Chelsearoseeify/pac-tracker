@@ -45,7 +45,7 @@ function WeightBadge({ weight, distance }: { weight: number | null; distance: nu
       style={{ backgroundColor: `rgba(${r}, ${g}, ${b}, ${(t * 0.55).toFixed(3)})` }}
       className={cn('mt-0.5 inline-block rounded px-1.5 text-[11px] tabular-nums', t > 0.55 ? 'font-bold' : t > 0.2 ? 'font-semibold' : 'text-muted-foreground')}
     >
-      {fmtPct(weight)}
+      {distance > 0 ? '−' : ''}{fmtPct(weight)}
     </span>
   )
 }
