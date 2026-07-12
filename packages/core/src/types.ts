@@ -59,7 +59,8 @@ export interface EtfComputed extends SnapshotRaw {
   weight6m: number | null
   /** BILANCIAMENTO = targetPct - weight6m (>0 = underweight -> buy more). */
   bilanciamento: number | null
-  /** NUOVO PAC = pac * (1 + bilanciamento). Negative => "reduce/stop". */
+  /** NUOVO PAC = round(pac * (1 + bilanciamento)) — always a whole €.
+   *  Negative => "reduce/stop". */
   nuovoPac: number | null
 }
 

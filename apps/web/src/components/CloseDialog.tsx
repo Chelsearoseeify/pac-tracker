@@ -2,7 +2,7 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { useState } from 'react'
 import type { SemesterData } from '@/lib/api'
 import { nextSemesterId } from '@pac/core'
-import { fmtEur } from '@/lib/format'
+import { fmtEur, fmtEur0 } from '@/lib/format'
 import { Button } from './ui'
 
 export function CloseDialog({ semesterId, data, onConfirm }: {
@@ -30,7 +30,7 @@ export function CloseDialog({ semesterId, data, onConfirm }: {
             Rollover verso <strong>{next}</strong>. Questa operazione:
           </Dialog.Description>
           <ul className="mt-3 space-y-1.5 text-sm">
-            <li>• PAC ← Nuovo PAC ({fmtEur(data.totals.nuovoPac)} totale)</li>
+            <li>• PAC ← Nuovo PAC ({fmtEur0(data.totals.nuovoPac)} totale)</li>
             <li>• Valore iniziale ← Valore oggi ({fmtEur(data.totals.valReale)})</li>
             <li>• Tot. versato +{fmtEur((data.totals.pac ?? 0) * 6)}</li>
             <li>• {semesterId} diventa storico immutabile</li>

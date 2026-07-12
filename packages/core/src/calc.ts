@@ -32,7 +32,7 @@ const round2 = (n: number) => Math.round(n * 100) / 100
  *   performance   = valReale - (totVersato+pac*6) 3500 - (2266+408) =  826
  *   weight6m      = valReale / Σ valReale         3500 / 6785       = 51.58%
  *   bilanciamento = targetPct - weight6m          45.32% - 51.58%  = -6.264%
- *   nuovoPac      = pac * (1 + bilanciamento)      68 * 0.93736     = 63.74
+ *   nuovoPac      = round(pac * (1 + bilanciamento)) 68 * 0.93736 -> 64 (whole €)
  *
  * @param normalizeTo  when set (e.g. 150), scales every nuovoPac so the total
  *   equals it — the display then matches exactly what the rollover will write.
@@ -52,7 +52,7 @@ export function computeSemester(
     : 0
   const factor = normalizeTo != null && sumNuovo !== 0 ? normalizeTo / sumNuovo : 1
 
-  return snapshots.map((r) => {
+  const rows = snapshots.map((r) => {
     const valTeorico = r.valAttuale + r.pac * MONTHS
     const pctPac = totalPac > 0 ? r.pac / totalPac : 0
 
@@ -84,6 +84,25 @@ export function computeSemester(
       nuovoPac,
     }
   })
+
+  // NUOVO PAC is always a whole number of euros. Round each, then (when
+  // normalizeTo is set) absorb the rounding residual into the largest PAC so
+  // the total lands EXACTLY on normalizeTo. rollover consumes these values
+  // directly, so display and history stay in lockstep.
+  const withPac = rows.filter((r) => r.nuovoPac != null)
+  if (withPac.length) {
+    for (const r of withPac) r.nuovoPac = Math.round(r.nuovoPac as number)
+    if (normalizeTo != null) {
+      const target = Math.round(normalizeTo)
+      const residual = target - withPac.reduce((s, r) => s + (r.nuovoPac as number), 0)
+      if (residual !== 0) {
+        const big = withPac.reduce((a, b) => ((b.nuovoPac as number) > (a.nuovoPac as number) ? b : a))
+        big.nuovoPac = (big.nuovoPac as number) + residual
+      }
+    }
+  }
+
+  return rows
 }
 
 /** Column totals for the TOTALI row. Nulls when the semester is still open. */
@@ -133,27 +152,17 @@ export function rollover(
     throw new Error('Cannot roll over: some VAL REALE are still empty')
   }
 
-  const next = computed.map((etf) => ({
+  // nuovoPac is already a residual-adjusted integer from computeSemester, so
+  // the new PAC is written verbatim — display and history match exactly.
+  return computed.map((etf) => ({
     semesterId: nextSemesterId,
     etfId: etf.etfId,
     targetPct: etf.targetPct,
-    pac: round2(etf.nuovoPac as number),
+    pac: etf.nuovoPac as number,
     valAttuale: etf.valReale as number,
     totVersato: etf.totVersato + etf.pac * MONTHS,
     valReale: null,
   }))
-
-  // Absorb per-row rounding residual into the largest PAC so the normalized
-  // total is EXACTLY normalizeTo (e.g. 150.00, not 150.01).
-  if (normalizeTo != null && next.length > 0) {
-    const residual = round2(normalizeTo - next.reduce((s, r) => s + r.pac, 0))
-    if (residual !== 0) {
-      const big = next.reduce((a, b) => (b.pac > a.pac ? b : a))
-      big.pac = round2(big.pac + residual)
-    }
-  }
-
-  return next
 }
 
 /** Build the first semester's snapshots from the fixed day-zero config. */

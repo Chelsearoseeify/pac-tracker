@@ -35,25 +35,25 @@ near(sp.differenza, 826, 0.01, 'S&P DIFFERENZA')
 near(sp.performance, 826, 0.01, 'S&P PERFORMANCE (net incl. this sem PAC)')
 near(sp.weight6m, 0.5158, 0.0005, 'S&P %TARGET 6M')
 near(sp.bilanciamento, -0.06264, 0.0005, 'S&P BILANCIAMENTO')
-near(sp.nuovoPac, 63.74, 0.02, 'S&P NUOVO PAC')
+near(sp.nuovoPac, 64, 0.01, 'S&P NUOVO PAC (integer, 63.74->64)')
 
-near(c[1].nuovoPac, 36.68, 0.02, 'DEV NUOVO PAC')
-near(c[2].nuovoPac, 24.50, 0.02, 'EM NUOVO PAC')
-near(c[3].nuovoPac, 11.08, 0.02, 'MOM NUOVO PAC')
-near(c[4].nuovoPac, 11.18, 0.02, 'VALUE NUOVO PAC')
+near(c[1].nuovoPac, 37, 0.01, 'DEV NUOVO PAC (36.68->37)')
+near(c[2].nuovoPac, 24, 0.01, 'EM NUOVO PAC (24.50->24)')
+near(c[3].nuovoPac, 11, 0.01, 'MOM NUOVO PAC (11.08->11)')
+near(c[4].nuovoPac, 11, 0.01, 'VALUE NUOVO PAC (11.18->11)')
 
 const t = totals(c)
 near(t.valReale, 6785, 0.01, 'TOT VAL REALE')
 near(t.valTeorico, 5900, 0.01, 'TOT VAL TEORICO')
 near(t.differenza, 885, 0.01, 'TOT DIFFERENZA')
 near(t.performance, 885, 0.01, 'TOT PERFORMANCE (= differenza in H1, valAtt=versatoIniz)')
-near(t.nuovoPac, 147.17, 0.05, 'TOT NUOVO PAC (drifts, not 150)')
+near(t.nuovoPac, 147, 0.01, 'TOT NUOVO PAC (integers sum, drifts, not 150)')
 
 // Rollover into 2026-H2: TOT VERSATO grows by pac_old*6 (+900 total).
 const h2 = rollover(h1, names, '2026-H2')
 near(h2[0].totVersato, 2674, 0.01, 'H2 S&P TOT VERSATO (+408)')
 near(h2[0].valAttuale, 3500, 0.01, 'H2 S&P VAL ATTUALE = old VAL REALE')
-near(h2[0].pac, 63.74, 0.02, 'H2 S&P PAC = old NUOVO PAC')
+near(h2[0].pac, 64, 0.01, 'H2 S&P PAC = old NUOVO PAC (integer)')
 near(h2.reduce((s, r) => s + r.totVersato, 0), 5900, 0.01, 'H2 TOT VERSATO total (+900)')
 
 // Normalized DISPLAY: computeSemester with normalizeTo scales nuovoPac so the

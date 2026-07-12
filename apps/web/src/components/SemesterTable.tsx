@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { AlertTriangle } from 'lucide-react'
 import type { EtfComputed } from '@pac/core'
 import type { SemesterData } from '@/lib/api'
-import { fmtEur, fmtPct, fmtSigned } from '@/lib/format'
+import { fmtEur, fmtEur0, fmtPct, fmtSigned } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 /** Editable currency cell — commits on blur / Enter, only when changed. */
@@ -95,7 +95,7 @@ export function SemesterTable({ data, editable, onPatch }: {
               <TD className="text-muted-foreground">{fmtPct(r.weight6m)}</TD>
               <TD><Signed v={r.bilanciamento} kind="pct" /></TD>
               <TD className={cn('font-semibold', r.nuovoPac != null && r.nuovoPac < 0 && 'text-negative')}>
-                {fmtEur(r.nuovoPac)}
+                {fmtEur0(r.nuovoPac)}
               </TD>
             </tr>
           ))}
@@ -114,7 +114,7 @@ export function SemesterTable({ data, editable, onPatch }: {
             <TD><Signed v={totals.performance} /></TD>
             <TD>{fmtPct(totals.weight6m)}</TD>
             <TD />
-            <TD>{fmtEur(totals.nuovoPac)}</TD>
+            <TD>{fmtEur0(totals.nuovoPac)}</TD>
           </tr>
         </tfoot>
       </table>

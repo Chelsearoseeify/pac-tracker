@@ -22,7 +22,7 @@ const DEFAULT_ROWS: Row[] = [
 export function SetupForm({ onDone }: { onDone: () => void }) {
   const [rows, setRows] = useState<Row[]>(DEFAULT_ROWS)
   const [pacMensile, setPacMensile] = useState('150')
-  const [dataAvvio, setDataAvvio] = useState('2026-01-01')
+  const [dataAvvio, setDataAvvio] = useState(() => new Date().toISOString().slice(0, 10))
   const [normalizePac, setNormalizePac] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
