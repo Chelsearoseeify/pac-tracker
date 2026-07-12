@@ -66,7 +66,7 @@ export function App() {
                 </div>
                 <CloseDialog semesterId={current.id} data={currentData} onConfirm={close} />
               </div>
-              <SemesterTable data={currentData} editable onPatch={patch} pacMensile={state.config?.pacMensile ?? 150} />
+              <SemesterTable data={currentData} editable onPatch={patch} />
             </>
           ) : (
             <p className="text-muted-foreground">Nessun semestre aperto.</p>
@@ -78,7 +78,7 @@ export function App() {
         </Tabs.Content>
 
         <Tabs.Content value="history">
-          <History semesters={semesters} etfs={etfs} pacMensile={state.config?.pacMensile ?? 150} />
+          <History semesters={semesters} etfs={etfs} />
         </Tabs.Content>
       </Tabs.Root>
     </Shell>

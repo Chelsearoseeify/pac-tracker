@@ -31,25 +31,22 @@ function EditCell({ value, onCommit, disabled }: {
   )
 }
 
-/** % Attuale cell — highlighted by distance from target (|bilanciamento|).
- *  The farther the current weight is from target, the stronger the tint:
- *  amber when overweight (drift < 0), sky when underweight (drift > 0).
- *  Full intensity at ~10 percentage points away. */
-function WeightCell({ weight, distance }: { weight: number | null; distance: number | null }) {
-  if (weight == null || distance == null) {
-    return <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums text-muted-foreground">{fmtPct(weight)}</td>
-  }
+/** % Attuale pill (shown under Valore oggi) — highlighted by distance from
+ *  target (|bilanciamento|). The farther the current weight is from target, the
+ *  stronger the tint: amber when overweight (drift < 0), sky when underweight
+ *  (drift > 0). Full intensity at ~10 percentage points away. */
+function WeightBadge({ weight, distance }: { weight: number | null; distance: number | null }) {
+  if (weight == null || distance == null) return null
   const t = Math.min(Math.abs(distance) / 0.1, 1) // 0..1, saturates at 10pp
-  // overweight (distance<0) -> amber; underweight (distance>0) -> sky
   const [r, g, b] = distance < 0 ? [245, 158, 11] : [56, 189, 248]
   return (
-    <td
-      title={`${(Math.abs(distance) * 100).toFixed(2)}pp ${distance < 0 ? 'sopra' : 'sotto'} il target`}
-      style={{ backgroundColor: `rgba(${r}, ${g}, ${b}, ${(t * 0.4).toFixed(3)})` }}
-      className={cn('whitespace-nowrap px-3 py-2 text-right tabular-nums', t > 0.55 ? 'font-bold' : t > 0.2 ? 'font-semibold' : 'text-muted-foreground')}
+    <span
+      title={`${fmtPct(weight)} · ${(Math.abs(distance) * 100).toFixed(2)}pp ${distance < 0 ? 'sopra' : 'sotto'} il target`}
+      style={{ backgroundColor: `rgba(${r}, ${g}, ${b}, ${(t * 0.55).toFixed(3)})` }}
+      className={cn('mt-0.5 inline-block rounded px-1.5 text-[11px] tabular-nums', t > 0.55 ? 'font-bold' : t > 0.2 ? 'font-semibold' : 'text-muted-foreground')}
     >
       {fmtPct(weight)}
-    </td>
+    </span>
   )
 }
 
@@ -69,11 +66,10 @@ const TD = ({ children, className }: { children?: React.ReactNode; className?: s
   <td className={cn('whitespace-nowrap px-3 py-2 text-right tabular-nums', className)}>{children}</td>
 )
 
-export function SemesterTable({ data, editable, onPatch, pacMensile }: {
+export function SemesterTable({ data, editable, onPatch }: {
   data: SemesterData
   editable: boolean
   onPatch: (etfId: string, patch: Record<string, number | null>) => void
-  pacMensile: number
 }) {
   const { rows, totals } = data
   const hasNegativePac = rows.some((r) => r.nuovoPac != null && r.nuovoPac < 0)
@@ -85,22 +81,15 @@ export function SemesterTable({ data, editable, onPatch, pacMensile }: {
           <tr>
             <th className="px-3 py-2 text-left align-bottom font-medium text-muted-foreground">ETF</th>
             <TH sub="strategia">% Target</TH>
-            <TH sub="a inizio">Tot. versato</TH>
             <TH sub="+ PAC × 6">Totale versato ad oggi</TH>
-            <TH sub="quota">% PAC</TH>
-            <TH sub="questo sem.">PAC</TH>
+            <TH sub="questo sem. · quota">PAC</TH>
             <TH sub="6 mesi fa">Valore iniziale</TH>
             <TH sub="oggi, con interessi">Valore teorico</TH>
-            <TH sub="adesso · reale" className="text-primary">Valore oggi</TH>
+            <TH sub="reale · peso oggi" className="text-primary">Valore oggi</TH>
             <TH sub="teorico vs oggi">Differenza</TH>
             <TH sub="netta dall'inizio">Plusvalenza</TH>
-            <TH sub="peso oggi">% Attuale</TH>
             <TH sub="target − oggi">Bilanciamento</TH>
             <TH sub="pross. sem.">Nuovo PAC</TH>
-            <th className="px-3 py-2 text-left align-bottom font-medium text-muted-foreground">
-              Calcolo
-              <span className="block text-[10px] font-normal">pac mensile × (%target + bilanciamento)</span>
-            </th>
           </tr>
         </thead>
         <tbody>
@@ -108,29 +97,27 @@ export function SemesterTable({ data, editable, onPatch, pacMensile }: {
             <tr key={`${r.semesterId}:${r.etfId}`} className={cn('border-b border-border/60', i % 2 && 'bg-muted/20')}>
               <td className="whitespace-nowrap px-3 py-2 text-left font-semibold">{r.name}</td>
               <TD className="font-semibold">{fmtPct(r.targetPct)}</TD>
-              <TD>{fmtEur(r.totVersato)}</TD>
               <TD>{fmtEur(r.totVersatoOggi)}</TD>
-              <TD className="text-muted-foreground">{fmtPct(r.pctPac)}</TD>
-              <TD>{fmtEur(r.pac)}</TD>
+              <TD>
+                <div>{fmtEur(r.pac)}</div>
+                <div className="text-[11px] text-muted-foreground">{fmtPct(r.pctPac)}</div>
+              </TD>
               <TD>{fmtEur(r.valAttuale)}</TD>
               <TD className="text-muted-foreground">{fmtEur(r.valTeorico)}</TD>
               <TD>
-                {editable
-                  ? <EditCell value={r.valReale} onCommit={(v) => onPatch(r.etfId, { valReale: v })} />
-                  : fmtEur(r.valReale)}
+                <div>
+                  {editable
+                    ? <EditCell value={r.valReale} onCommit={(v) => onPatch(r.etfId, { valReale: v })} />
+                    : fmtEur(r.valReale)}
+                </div>
+                <WeightBadge weight={r.weight6m} distance={r.bilanciamento} />
               </TD>
               <TD><Signed v={r.differenza} /></TD>
               <TD><Signed v={r.performance} /></TD>
-              <WeightCell weight={r.weight6m} distance={r.bilanciamento} />
               <TD><Signed v={r.bilanciamento} kind="pct" /></TD>
               <TD className={cn('font-semibold', r.nuovoPac != null && r.nuovoPac < 0 && 'text-negative')}>
                 {fmtEur0(r.nuovoPac)}
               </TD>
-              <td className="whitespace-nowrap px-3 py-2 text-left text-xs text-muted-foreground tabular-nums">
-                {r.nuovoPac == null || r.bilanciamento == null
-                  ? '—'
-                  : `${fmtEur0(pacMensile)} × (${fmtPct(r.targetPct)} ${r.bilanciamento >= 0 ? '+' : '−'} ${fmtPct(Math.abs(r.bilanciamento))}) = ${fmtEur(pacMensile * (r.targetPct + r.bilanciamento))} → ${fmtEur0(r.nuovoPac)}`}
-              </td>
             </tr>
           ))}
         </tbody>
@@ -138,19 +125,21 @@ export function SemesterTable({ data, editable, onPatch, pacMensile }: {
           <tr className="border-t-2 border-border bg-muted/50 font-semibold">
             <td className="px-3 py-2 text-left">TOTALI</td>
             <TD>{fmtPct(totals.targetPct)}</TD>
-            <TD>{fmtEur(totals.totVersato)}</TD>
             <TD>{fmtEur(totals.totVersatoOggi)}</TD>
-            <TD>{fmtPct(totals.pctPac)}</TD>
-            <TD>{fmtEur(totals.pac)}</TD>
+            <TD>
+              <div>{fmtEur(totals.pac)}</div>
+              <div className="text-[11px] font-normal text-muted-foreground">{fmtPct(totals.pctPac)}</div>
+            </TD>
             <TD>{fmtEur(totals.valAttuale)}</TD>
             <TD>{fmtEur(totals.valTeorico)}</TD>
-            <TD>{fmtEur(totals.valReale)}</TD>
+            <TD>
+              <div>{fmtEur(totals.valReale)}</div>
+              <div className="text-[11px] font-normal text-muted-foreground">{fmtPct(totals.weight6m)}</div>
+            </TD>
             <TD><Signed v={totals.differenza} /></TD>
             <TD><Signed v={totals.performance} /></TD>
-            <TD>{fmtPct(totals.weight6m)}</TD>
             <TD />
             <TD>{fmtEur0(totals.nuovoPac)}</TD>
-            <td />
           </tr>
         </tfoot>
       </table>
