@@ -64,10 +64,11 @@ export function SemesterTable({ data, editable, onPatch, pacMensile }: {
             <th className="px-3 py-2 text-left align-bottom font-medium text-muted-foreground">ETF</th>
             <TH sub="strategia">% Target</TH>
             <TH sub="a inizio">Tot. versato</TH>
+            <TH sub="+ PAC × 6">Totale versato ad oggi</TH>
             <TH sub="quota">% PAC</TH>
             <TH sub="questo sem.">PAC</TH>
             <TH sub="6 mesi fa">Valore iniziale</TH>
-            <TH sub="oggi, se fermo">Valore teorico</TH>
+            <TH sub="oggi, con interessi">Valore teorico</TH>
             <TH sub="adesso · reale" className="text-primary">Valore oggi</TH>
             <TH sub="teorico vs oggi">Differenza</TH>
             <TH sub="netta dall'inizio">Plusvalenza</TH>
@@ -86,6 +87,7 @@ export function SemesterTable({ data, editable, onPatch, pacMensile }: {
               <td className="whitespace-nowrap px-3 py-2 text-left font-semibold">{r.name}</td>
               <TD className="font-semibold">{fmtPct(r.targetPct)}</TD>
               <TD>{fmtEur(r.totVersato)}</TD>
+              <TD>{fmtEur(r.totVersatoOggi)}</TD>
               <TD className="text-muted-foreground">{fmtPct(r.pctPac)}</TD>
               <TD>{fmtEur(r.pac)}</TD>
               <TD>{fmtEur(r.valAttuale)}</TD>
@@ -115,6 +117,7 @@ export function SemesterTable({ data, editable, onPatch, pacMensile }: {
             <td className="px-3 py-2 text-left">TOTALI</td>
             <TD>{fmtPct(totals.targetPct)}</TD>
             <TD>{fmtEur(totals.totVersato)}</TD>
+            <TD>{fmtEur(totals.totVersatoOggi)}</TD>
             <TD>{fmtPct(totals.pctPac)}</TD>
             <TD>{fmtEur(totals.pac)}</TD>
             <TD>{fmtEur(totals.valAttuale)}</TD>

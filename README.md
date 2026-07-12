@@ -21,8 +21,11 @@ niente rischio di sovrascrivere le celle "fisse", storico ventennale sempre a po
 ### Le formule (verificate 1:1 col foglio di riferimento)
 
 ```
-VAL TEORICO   = VAL ATTUALE + PAC × 6
-DIFFERENZA    = VAL REALE − VAL TEORICO          (guadagno di mercato del semestre)
+TOT VERSATO OGGI = TOT VERSATO + PAC × 6         (soldi versati fin qui, incluso il semestre)
+TASSO         = VAL REALE(prec) / VAL TEORICO(prec) − 1   (rendimento realizzato lo scorso semestre, per ETF)
+VAL TEORICO   = VAL ATTUALE × (1 + TASSO) + PAC × TASSO / ((1+TASSO)^(1/6) − 1)
+                                                 (valore atteso: capitale a interesse + PAC mensili composti; piatto = VAL ATTUALE + PAC×6 al 1° semestre)
+DIFFERENZA    = VAL REALE − VAL TEORICO          (reale vs atteso col rendimento)
 PERFORMANCE   = VAL REALE − (TOT VERSATO + PAC × 6)   (netto vero: tutto il versato dall'inizio, PAC compreso)
 % TARGET 6M   = VAL REALE / Σ VAL REALE          (peso reale attuale)
 BILANCIAMENTO = % TARGET − % TARGET 6M           (>0 = sottopeso → compra di più)

@@ -61,9 +61,33 @@ async function pacMensile(): Promise<number> {
   return r.rows.length ? ((r.rows[0] as Record<string, unknown>).pac_mensile as number) : 150
 }
 
+/** Per-ETF realized return of the semester immediately before `semesterId`:
+ *  valReale / (valAttuale + pac*6) - 1. Feeds the interest-projected VALORE
+ *  TEORICO. Empty for the first semester (no prior). */
+async function prevRates(semesterId: string): Promise<Record<string, number>> {
+  const r = await db.execute({
+    sql: 'SELECT id FROM semesters WHERE id < ? ORDER BY id DESC LIMIT 1',
+    args: [semesterId],
+  })
+  if (r.rows.length === 0) return {}
+  const prevId = (r.rows[0] as Record<string, unknown>).id as string
+  const rates: Record<string, number> = {}
+  for (const s of await getSnapshots(prevId)) {
+    if (s.valReale == null) continue
+    const base = s.valAttuale + s.pac * 6
+    if (base > 0) rates[s.etfId] = s.valReale / base - 1
+  }
+  return rates
+}
+
 async function computedSemester(semesterId: string) {
   const names = await getNames()
-  const rows = computeSemester(await orderedSnapshots(semesterId), names, await pacMensile())
+  const rows = computeSemester(
+    await orderedSnapshots(semesterId),
+    names,
+    await pacMensile(),
+    await prevRates(semesterId),
+  )
   return { rows, totals: totals(rows) }
 }
 

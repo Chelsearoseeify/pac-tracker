@@ -46,11 +46,16 @@ export interface SnapshotRaw {
 /** A snapshot plus every derived column. */
 export interface EtfComputed extends SnapshotRaw {
   name: string
+  /** TOTALE VERSATO AD OGGI = totVersato + pac*6 (cumulative money contributed
+   *  including this semester's contributions). */
+  totVersatoOggi: number
   /** %PAC = pac / totalPac. */
   pctPac: number
-  /** VAL TEORICO 6 MESI = valAttuale + pac*6. */
+  /** VALORE TEORICO = valAttuale grown at the previous semester's realized rate
+   *  plus this semester's monthly contributions compounded. Flat (valAttuale +
+   *  pac*6) when there is no prior rate. */
   valTeorico: number
-  /** DIFFERENZA = valReale - valTeorico (semester market gain vs flat). */
+  /** DIFFERENZA = valReale - valTeorico (actual vs interest-projected expected). */
   differenza: number | null
   /** PERFORMANCE = valReale - (totVersato + pac*6): net gain since inception,
    *  every euro contributed (this semester's PAC included) subtracted. */

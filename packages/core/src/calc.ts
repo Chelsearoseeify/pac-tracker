@@ -42,18 +42,32 @@ const round2 = (n: number) => Math.round(n * 100) / 100
  *                                                 150*(0.4532-0.0626) -> 59
  *
  * @param pacMensile  the fixed total monthly budget to split (e.g. 150).
+ * @param prevRate    per-ETF realized return of the PREVIOUS semester,
+ *   `valReale_prev / (valAttuale_prev + pac_prev*6) - 1`. Used to project
+ *   VALORE TEORICO forward WITH compounding interest (monthly contributions).
+ *   Omit / 0 (e.g. the first semester) => flat projection `valAttuale + pac*6`.
  */
 export function computeSemester(
   snapshots: SnapshotRaw[],
   names: Record<string, string>,
   pacMensile: number,
+  prevRate?: Record<string, number>,
 ): EtfComputed[] {
   const totalPac = snapshots.reduce((s, r) => s + r.pac, 0)
   const allReale = snapshots.every((r) => r.valReale != null)
   const sumReale = allReale ? snapshots.reduce((s, r) => s + (r.valReale as number), 0) : null
 
   const rows = snapshots.map((r) => {
-    const valTeorico = r.valAttuale + r.pac * MONTHS
+    // VALORE TEORICO: previous semester's start value grown at last realized
+    // rate, plus this semester's monthly contributions compounded as an annuity.
+    // Monthly rate rM with (1+rM)^6 = 1+rate, so the annuity FV simplifies to
+    // pac * rate / rM (-> pac*6 as rate -> 0).
+    const rate = prevRate?.[r.etfId] ?? 0
+    const valTeorico = rate === 0 || rate <= -1
+      ? r.valAttuale + r.pac * MONTHS
+      : r.valAttuale * (1 + rate) + r.pac * rate / (Math.pow(1 + rate, 1 / MONTHS) - 1)
+    // Cumulative money actually contributed as of today (start total + this sem).
+    const totVersatoOggi = r.totVersato + r.pac * MONTHS
     const pctPac = totalPac > 0 ? r.pac / totalPac : 0
 
     let differenza: number | null = null
@@ -77,6 +91,7 @@ export function computeSemester(
       ...r,
       name: names[r.etfId] ?? r.etfId,
       pctPac,
+      totVersatoOggi,
       valTeorico,
       differenza,
       performance,
@@ -112,6 +127,7 @@ export function totals(rows: EtfComputed[]) {
   return {
     targetPct: sum((r) => r.targetPct),
     totVersato: sum((r) => r.totVersato),
+    totVersatoOggi: sum((r) => r.totVersatoOggi),
     pctPac: sum((r) => r.pctPac),
     pac: sum((r) => r.pac),
     valAttuale: sum((r) => r.valAttuale),

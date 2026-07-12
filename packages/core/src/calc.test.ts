@@ -31,7 +31,8 @@ const PAC = 150
 const c = computeSemester(h1, names, PAC)
 const sp = c[0]
 
-near(sp.valTeorico, 2674, 0.01, 'S&P VAL TEORICO')
+near(sp.valTeorico, 2674, 0.01, 'S&P VAL TEORICO (flat, no prior rate)')
+near(sp.totVersatoOggi, 2674, 0.01, 'S&P TOTALE VERSATO AD OGGI (2266 + 68*6)')
 near(sp.differenza, 826, 0.01, 'S&P DIFFERENZA')
 near(sp.performance, 826, 0.01, 'S&P PERFORMANCE (net incl. this sem PAC)')
 near(sp.weight6m, 0.5158, 0.0005, 'S&P %TARGET 6M')
@@ -60,6 +61,13 @@ near(h2[0].valAttuale, 3500, 0.01, 'H2 S&P VAL ATTUALE = old VAL REALE')
 near(h2[0].pac, 59, 0.01, 'H2 S&P PAC = old NUOVO PAC (59)')
 near(h2.reduce((s, r) => s + r.totVersato, 0), 5900, 0.01, 'H2 TOT VERSATO total (+900)')
 near(h2.reduce((s, r) => s + r.pac, 0), 150, 0.001, 'H2 total PAC = 150 exactly')
+
+// VALORE TEORICO with interest: valAttuale grown at the prior semester's rate
+// plus the monthly PAC compounded. 10%/sem on S&P:
+//   2266 * 1.10 + 68 * 0.10 / ((1.10^(1/6)) - 1) = 2492.6 + 424.7 = 2917.3
+const withRate = computeSemester(h1, names, PAC, { sp500: 0.10 })
+near(withRate[0].valTeorico, 2917.3, 1, 'S&P VAL TEORICO @ 10%/sem (interest, monthly)')
+near(computeSemester(h1, names, PAC, {})[0].valTeorico, 2674, 0.01, 'VAL TEORICO flat when no prior rate')
 
 console.log(failures === 0 ? '\nALL PASS' : `\n${failures} FAILURES`)
 process.exit(failures === 0 ? 0 : 1)
