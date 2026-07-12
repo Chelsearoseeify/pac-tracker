@@ -56,6 +56,17 @@ const Signed = ({ v, kind = 'eur' }: { v: number | null; kind?: 'eur' | 'pct' })
   </span>
 )
 
+/** A signed euro gain with its percentage (value / base) as a small sub-line. */
+const GainCell = ({ value, base }: { value: number | null; base: number | null | undefined }) => {
+  const pct = value != null && base != null && base !== 0 ? value / base : null
+  return (
+    <TD>
+      <div><Signed v={value} /></div>
+      {pct != null && <div className="text-[11px]"><Signed v={pct} kind="pct" /></div>}
+    </TD>
+  )
+}
+
 const TH = ({ children, sub, className }: { children?: React.ReactNode; sub?: string; className?: string }) => (
   <th className={cn('whitespace-nowrap px-3 py-2 text-right align-bottom font-medium text-muted-foreground', className)}>
     <div className="leading-tight">{children}</div>
@@ -114,8 +125,8 @@ export function SemesterTable({ data, editable, onPatch }: {
                 </div>
                 <WeightBadge weight={r.weight6m} distance={r.bilanciamento} />
               </TD>
-              <TD><Signed v={r.differenza} /></TD>
-              <TD><Signed v={r.performance} /></TD>
+              <GainCell value={r.differenza} base={r.valTeorico} />
+              <GainCell value={r.performance} base={r.totVersatoOggi} />
               <TD><Signed v={r.bilanciamento} kind="pct" /></TD>
               <TD className={cn('font-semibold', r.nuovoPac != null && r.nuovoPac < 0 && 'text-negative')}>
                 {fmtEur0(r.nuovoPac)}
@@ -138,8 +149,8 @@ export function SemesterTable({ data, editable, onPatch }: {
               <div>{fmtEur(totals.valReale)}</div>
               <div className="text-[11px] font-normal text-muted-foreground">{fmtPct(totals.weight6m)}</div>
             </TD>
-            <TD><Signed v={totals.differenza} /></TD>
-            <TD><Signed v={totals.performance} /></TD>
+            <GainCell value={totals.differenza} base={totals.valTeorico} />
+            <GainCell value={totals.performance} base={totals.totVersatoOggi} />
             <TD />
             <TD>{fmtEur0(totals.nuovoPac)}</TD>
           </tr>
