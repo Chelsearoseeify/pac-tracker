@@ -101,12 +101,19 @@ export function computeSemester(
     }
   })
 
-  // NUOVO PAC is always a whole number of euros. The raw values already sum to
-  // pacMensile, so after rounding we only absorb the small rounding residual
-  // into the largest PAC to land the total EXACTLY on pacMensile. rollover
-  // consumes these values directly, so display and history stay in lockstep.
+  // Finalize NUOVO PAC. You can't contribute a negative amount, so any fund
+  // whose raw share is negative (very overweight) is floored to 0 and the full
+  // budget is redistributed proportionally across the funds that still get a
+  // positive share (scale factor pacMensile / Σ positives). Then round to whole
+  // euros and absorb the rounding residual into the largest PAC so the total is
+  // EXACTLY pacMensile. rollover consumes these values directly.
   const withPac = rows.filter((r) => r.nuovoPac != null)
   if (withPac.length) {
+    const posSum = withPac.reduce((s, r) => s + Math.max(r.nuovoPac as number, 0), 0)
+    for (const r of withPac) {
+      const raw = r.nuovoPac as number
+      r.nuovoPac = raw <= 0 || posSum <= 0 ? 0 : (raw * pacMensile) / posSum
+    }
     for (const r of withPac) r.nuovoPac = Math.round(r.nuovoPac as number)
     const residual = Math.round(pacMensile) - withPac.reduce((s, r) => s + (r.nuovoPac as number), 0)
     if (residual !== 0) {

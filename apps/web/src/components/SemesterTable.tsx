@@ -72,7 +72,9 @@ export function SemesterTable({ data, editable, onPatch }: {
   onPatch: (etfId: string, patch: Record<string, number | null>) => void
 }) {
   const { rows, totals } = data
-  const hasNegativePac = rows.some((r) => r.nuovoPac != null && r.nuovoPac < 0)
+  // A fund whose raw share (targetPct + bilanciamento) is negative was floored
+  // to 0 and its budget redistributed — flag it even though nuovoPac shows 0.
+  const hasCappedPac = rows.some((r) => r.bilanciamento != null && r.targetPct + r.bilanciamento < 0)
 
   return (
     <div className="overflow-x-auto rounded-xl border border-border bg-card">
@@ -144,10 +146,10 @@ export function SemesterTable({ data, editable, onPatch }: {
         </tfoot>
       </table>
 
-      {hasNegativePac && (
+      {hasCappedPac && (
         <div className="flex items-center gap-2 border-t border-border bg-negative/10 px-3 py-2 text-xs text-negative">
           <AlertTriangle size={14} />
-          Un NUOVO PAC è negativo: quell'ETF ha sovraperformato molto. Non si versa negativo — considera di ridurre/fermare o ribilanciare vendendo.
+          Un NUOVO PAC sarebbe stato negativo: quell'ETF ha sovraperformato molto. Azzerato (non si versa negativo) e il budget ridistribuito sugli altri — considera di ribilanciare vendendo.
         </div>
       )}
     </div>

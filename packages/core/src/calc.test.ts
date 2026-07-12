@@ -69,5 +69,23 @@ const withRate = computeSemester(h1, names, PAC, { sp500: 0.10 })
 near(withRate[0].valTeorico, 2917.3, 1, 'S&P VAL TEORICO @ 10%/sem (interest, monthly)')
 near(computeSemester(h1, names, PAC, {})[0].valTeorico, 2674, 0.01, 'VAL TEORICO flat when no prior rate')
 
+// Negative NUOVO PAC (MOMENTUM far overweight) -> floored to 0, budget
+// redistributed proportionally across the positives; total stays 150.
+const over: SnapshotRaw[] = [
+  { semesterId: '2027-H1', etfId: 'sp500', targetPct: 0.4532, pac: 68, valAttuale: 2800, totVersato: 3082, valReale: 3200 },
+  { semesterId: '2027-H1', etfId: 'dev',   targetPct: 0.24,   pac: 35, valAttuale: 1500, totVersato: 1626, valReale: 2000 },
+  { semesterId: '2027-H1', etfId: 'em',    targetPct: 0.16,   pac: 25, valAttuale: 950,  totVersato: 1094, valReale: 1500 },
+  { semesterId: '2027-H1', etfId: 'mom',   targetPct: 0.0734, pac: 11, valAttuale: 450,  totVersato: 499,  valReale: 2516 },
+  { semesterId: '2027-H1', etfId: 'val',   targetPct: 0.0734, pac: 11, valAttuale: 460,  totVersato: 499,  valReale: 590 },
+]
+const oc = computeSemester(over, names, PAC)
+near(oc[3].nuovoPac, 0, 0.01, 'MOM NUOVO PAC floored to 0 (would be negative)')
+near(oc[0].nuovoPac, 78, 0.01, 'S&P NUOVO PAC after redistribution')
+near(oc[1].nuovoPac, 37, 0.01, 'DEV NUOVO PAC after redistribution')
+near(oc[2].nuovoPac, 23, 0.01, 'EM NUOVO PAC after redistribution')
+near(oc[4].nuovoPac, 12, 0.01, 'VALUE NUOVO PAC after redistribution')
+near(totals(oc).nuovoPac, 150, 0.01, 'TOT NUOVO PAC still 150 after flooring')
+near(Math.min(...oc.map((r) => r.nuovoPac as number)), 0, 0.01, 'no NUOVO PAC is negative')
+
 console.log(failures === 0 ? '\nALL PASS' : `\n${failures} FAILURES`)
 process.exit(failures === 0 ? 0 : 1)
