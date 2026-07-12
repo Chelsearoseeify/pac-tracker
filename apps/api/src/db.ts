@@ -10,7 +10,19 @@ type Cell = { type: 'null' | 'integer' | 'float' | 'text' | 'blob'; value?: stri
 type Row = Record<string, unknown>
 export interface ResultSet { rows: Row[]; rowsAffected: number }
 
-const host = () => (process.env.TURSO_DATABASE_URL ?? '').replace(/^libsql:\/\//, 'https://').replace(/^wss:\/\//, 'https://').replace(/\/$/, '')
+const host = () => {
+  const raw = process.env.TURSO_DATABASE_URL
+  if (!raw) throw new Error(
+    'TURSO_DATABASE_URL is not set. In dev, put TURSO_DATABASE_URL and ' +
+    'TURSO_AUTH_TOKEN in .env.local at the repo root (see .env.example).',
+  )
+  if (raw.startsWith('file:')) throw new Error(
+    'file: URLs are not supported — this client speaks hrana over HTTP only. ' +
+    'Use a remote libsql:// Turso URL, or run `turso dev --db-file local.db` ' +
+    'and set TURSO_DATABASE_URL=http://127.0.0.1:8080.',
+  )
+  return raw.replace(/^libsql:\/\//, 'https://').replace(/^wss:\/\//, 'https://').replace(/\/$/, '')
+}
 const token = () => process.env.TURSO_AUTH_TOKEN ?? ''
 
 function toArg(v: Value): Cell {
