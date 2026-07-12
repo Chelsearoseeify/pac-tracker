@@ -31,6 +31,28 @@ function EditCell({ value, onCommit, disabled }: {
   )
 }
 
+/** % Attuale cell — highlighted by distance from target (|bilanciamento|).
+ *  The farther the current weight is from target, the stronger the tint:
+ *  amber when overweight (drift < 0), sky when underweight (drift > 0).
+ *  Full intensity at ~10 percentage points away. */
+function WeightCell({ weight, distance }: { weight: number | null; distance: number | null }) {
+  if (weight == null || distance == null) {
+    return <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums text-muted-foreground">{fmtPct(weight)}</td>
+  }
+  const t = Math.min(Math.abs(distance) / 0.1, 1) // 0..1, saturates at 10pp
+  // overweight (distance<0) -> amber; underweight (distance>0) -> sky
+  const [r, g, b] = distance < 0 ? [245, 158, 11] : [56, 189, 248]
+  return (
+    <td
+      title={`${(Math.abs(distance) * 100).toFixed(2)}pp ${distance < 0 ? 'sopra' : 'sotto'} il target`}
+      style={{ backgroundColor: `rgba(${r}, ${g}, ${b}, ${(t * 0.4).toFixed(3)})` }}
+      className={cn('whitespace-nowrap px-3 py-2 text-right tabular-nums', t > 0.55 ? 'font-bold' : t > 0.2 ? 'font-semibold' : 'text-muted-foreground')}
+    >
+      {fmtPct(weight)}
+    </td>
+  )
+}
+
 const Signed = ({ v, kind = 'eur' }: { v: number | null; kind?: 'eur' | 'pct' }) => (
   <span className={cn('tabular-nums', v != null && v > 0 && 'text-positive', v != null && v < 0 && 'text-negative')}>
     {kind === 'eur' ? fmtSigned(v) : v == null ? '—' : (v > 0 ? '+' : '') + fmtPct(v)}
@@ -99,7 +121,7 @@ export function SemesterTable({ data, editable, onPatch, pacMensile }: {
               </TD>
               <TD><Signed v={r.differenza} /></TD>
               <TD><Signed v={r.performance} /></TD>
-              <TD className="text-muted-foreground">{fmtPct(r.weight6m)}</TD>
+              <WeightCell weight={r.weight6m} distance={r.bilanciamento} />
               <TD><Signed v={r.bilanciamento} kind="pct" /></TD>
               <TD className={cn('font-semibold', r.nuovoPac != null && r.nuovoPac < 0 && 'text-negative')}>
                 {fmtEur0(r.nuovoPac)}
