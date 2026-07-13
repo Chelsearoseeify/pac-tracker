@@ -19,6 +19,9 @@ export interface Etf {
   /** VERSATO INIZIALE — the frozen day-zero contribution snapshot. */
   versatoIniziale: number
   orderIdx: number
+  /** ISIN, e.g. "IE0006WW1TQ4". Optional — set to pull live fund details
+   *  (key facts, allocations) from the DWS/Xtrackers PDP. null if unknown. */
+  isin?: string | null
 }
 
 // ─── Per-semester snapshot (append-only history) ───────────────────────────────

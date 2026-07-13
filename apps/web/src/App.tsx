@@ -66,7 +66,7 @@ export function App() {
                 </div>
                 <CloseDialog semesterId={current.id} data={currentData} onConfirm={close} />
               </div>
-              <SemesterTable data={currentData} editable onPatch={patch} />
+              <SemesterTable data={currentData} editable onPatch={patch} etfs={etfs} onIsinSaved={load} />
             </>
           ) : (
             <p className="text-muted-foreground">Nessun semestre aperto.</p>

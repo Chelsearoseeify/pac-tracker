@@ -19,6 +19,26 @@ import {
   rowToSnapshot,
 } from './db.js'
 
+// Minimal shape of the DWS/Xtrackers PDP `pdpMetaTagsTealium` payload — only the
+// fields /etf-details reads. Everything is optional; upstream shapes drift.
+interface DwsCard { title: string; asOfDate?: string; data?: { allocationName?: string; weighting?: number; weightingText?: string }[] }
+interface DwsPdp {
+  pdpResult?: {
+    pageFrame?: {
+      productHeader?: {
+        texts?: { title?: string }
+        identifier?: { key: string; value: string }[]
+        tableValues?: { key: string; date?: string; value: string | { price?: string } | unknown }[]
+      }
+    }
+    pageSections?: {
+      portfolio?: { charts?: { cards?: DwsCard[] } }
+      indexPortfolio?: { charts?: { cards?: DwsCard[] } }
+    }
+  }
+  metaTags?: { title?: string; ogUrl?: string }
+}
+
 export const app = new Hono().basePath('/api')
 
 app.use('*', cors({
@@ -220,6 +240,82 @@ app.post('/semesters/:id/close', async (c) => {
   await insertSnapshots(nextSnaps)
 
   return c.json({ ok: true, nextSemesterId: nextId }, 201)
+})
+
+// ─── attach / change an ETF's ISIN (enables live PDP lookup) ──────────────────
+app.patch('/etfs/:id', async (c) => {
+  const { id } = c.req.param()
+  const body = await c.req.json() as { isin?: string | null }
+  if (!('isin' in body)) return c.json({ error: 'No isin' }, 400)
+  const isin = body.isin?.trim().toUpperCase() || null
+  if (isin && !/^[A-Z]{2}[A-Z0-9]{9}\d$/.test(isin)) {
+    return c.json({ error: 'ISIN non valido (formato es. IE0006WW1TQ4)' }, 400)
+  }
+  const r = await db.execute({ sql: 'UPDATE etfs SET isin = ? WHERE id = ?', args: [isin, id] })
+  if (r.rowsAffected === 0) return c.json({ error: 'ETF non trovato' }, 404)
+  return c.json({ ok: true, isin })
+})
+
+// ─── live fund details, proxied from the DWS/Xtrackers PDP API ────────────────
+// Server-side fetch: dodges CORS and the Akamai edge (which 411s a bodyless
+// browser POST). We hit the `pdpMetaTagsTealium` component — it carries the full
+// page payload — then flatten just what the detail panel needs.
+app.get('/etf-details/:isin', async (c) => {
+  const isin = c.req.param('isin').toUpperCase()
+  if (!/^[A-Z]{2}[A-Z0-9]{9}\d$/.test(isin)) return c.json({ error: 'ISIN non valido' }, 400)
+  const culture = (c.req.query('culture') ?? 'it-it').toLowerCase()
+
+  const url = `https://etf.dws.com/api/pdp/${culture}/etf/${isin}/pdpMetaTagsTealium`
+  let json: DwsPdp
+  try {
+    const res = await fetch(url, {
+      headers: { Accept: 'application/json', 'User-Agent': 'Mozilla/5.0' },
+      signal: AbortSignal.timeout(15000),
+    })
+    if (!res.ok) return c.json({ error: `DWS HTTP ${res.status}` }, 502)
+    json = await res.json() as DwsPdp
+  } catch (e) {
+    return c.json({ error: `DWS non raggiungibile: ${(e as Error).message}` }, 502)
+  }
+
+  const pf = json.pdpResult?.pageFrame
+  const header = pf?.productHeader
+  if (!header) return c.json({ error: 'ISIN non trovato su DWS/Xtrackers' }, 404)
+
+  // productHeader.tableValues mixes shapes: NAV holds an object with .price,
+  // STRING holds a plain string, some entries hold arrays (links) we skip.
+  const facts = (header.tableValues ?? []).flatMap((t) => {
+    const raw = t.value
+    const v = typeof raw === 'string' ? raw
+      : raw && typeof raw === 'object' && 'price' in raw ? (raw as { price?: string }).price ?? null
+      : null
+    return v ? [{ key: t.key, value: v, date: t.date ?? null }] : []
+  })
+
+  const sections = json.pdpResult?.pageSections ?? {}
+  const cards = [
+    ...(sections.portfolio?.charts?.cards ?? []),
+    ...(sections.indexPortfolio?.charts?.cards ?? []),
+  ]
+  const seen = new Set<string>()
+  const allocations = cards.flatMap((card) => {
+    const data = (card.data ?? [])
+      .filter((d) => d.allocationName && typeof d.weighting === 'number')
+      .map((d) => ({ name: d.allocationName!, weighting: d.weighting!, label: d.weightingText ?? null }))
+    if (!data.length || seen.has(card.title)) return []
+    seen.add(card.title)
+    return [{ title: card.title, asOfDate: card.asOfDate || null, data }]
+  })
+
+  return c.json({
+    isin,
+    culture,
+    name: header.texts?.title ?? json.metaTags?.title ?? isin,
+    identifiers: header.identifier ?? [],
+    facts,
+    allocations,
+    productUrl: json.metaTags?.ogUrl ?? null,
+  })
 })
 
 // ─── reset everything (start over) ────────────────────────────────────────────

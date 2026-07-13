@@ -98,7 +98,8 @@ CREATE TABLE IF NOT EXISTS etfs (
   name TEXT NOT NULL,
   target_pct REAL NOT NULL,
   versato_iniziale REAL NOT NULL,
-  order_idx INTEGER NOT NULL DEFAULT 0
+  order_idx INTEGER NOT NULL DEFAULT 0,
+  isin TEXT
 );
 CREATE TABLE IF NOT EXISTS semesters (
   id TEXT PRIMARY KEY,
@@ -123,6 +124,9 @@ let migrated = false
 export async function ensureSchema() {
   if (migrated) return
   await db.executeMultiple(DDL)
+  // Add columns introduced after the initial schema. ALTER fails on a column
+  // that already exists — swallow that so it stays idempotent.
+  await db.execute('ALTER TABLE etfs ADD COLUMN isin TEXT').catch(() => {})
   migrated = true
 }
 
@@ -137,6 +141,7 @@ export const rowToEtf = (r: Row): Etf => ({
   targetPct: r.target_pct as number,
   versatoIniziale: r.versato_iniziale as number,
   orderIdx: r.order_idx as number,
+  isin: (r.isin as string) ?? null,
 })
 
 export const rowToSemester = (r: Row): Semester => ({

@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS etfs (
   name             TEXT NOT NULL,
   target_pct       REAL NOT NULL,        -- fraction 0..1
   versato_iniziale REAL NOT NULL,
-  order_idx        INTEGER NOT NULL DEFAULT 0
+  order_idx        INTEGER NOT NULL DEFAULT 0,
+  isin             TEXT                  -- optional, for live DWS/Xtrackers PDP lookup
 );
 
 CREATE TABLE IF NOT EXISTS semesters (

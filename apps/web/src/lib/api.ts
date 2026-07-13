@@ -28,6 +28,22 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
   return res.status === 204 ? (undefined as T) : res.json()
 }
 
+export interface EtfAllocation {
+  title: string
+  asOfDate: string | null
+  data: { name: string; weighting: number; label: string | null }[]
+}
+
+export interface EtfDetails {
+  isin: string
+  culture: string
+  name: string
+  identifiers: { key: string; value: string }[]
+  facts: { key: string; value: string; date: string | null }[]
+  allocations: EtfAllocation[]
+  productUrl: string | null
+}
+
 export interface SetupPayload {
   pacMensile: number
   dataAvvio: string
@@ -42,4 +58,8 @@ export const api = {
     req<SemesterData>(`/snapshots/${semesterId}/${etfId}`, { method: 'PATCH', body: JSON.stringify(patch) }),
   close: (id: string) => req<{ ok: true; nextSemesterId: string }>(`/semesters/${id}/close`, { method: 'POST' }),
   reset: () => req<void>('/reset', { method: 'DELETE' }),
+  setIsin: (etfId: string, isin: string | null) =>
+    req<{ ok: true; isin: string | null }>(`/etfs/${etfId}`, { method: 'PATCH', body: JSON.stringify({ isin }) }),
+  etfDetails: (isin: string, culture = 'it-it') =>
+    req<EtfDetails>(`/etf-details/${encodeURIComponent(isin)}?culture=${culture}`),
 }

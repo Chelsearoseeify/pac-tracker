@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { AlertTriangle } from 'lucide-react'
-import type { EtfComputed } from '@pac/core'
+import type { Etf, EtfComputed } from '@pac/core'
 import type { SemesterData } from '@/lib/api'
 import { fmtEur, fmtEur0, fmtPct, fmtSigned } from '@/lib/format'
 import { cn } from '@/lib/utils'
+import { EtfDetail } from './EtfDetail'
 
 /** Editable currency cell — commits on blur / Enter, only when changed. */
 function EditCell({ value, onCommit, disabled }: {
@@ -77,12 +78,16 @@ const TD = ({ children, className }: { children?: React.ReactNode; className?: s
   <td className={cn('whitespace-nowrap px-3 py-2 text-right tabular-nums', className)}>{children}</td>
 )
 
-export function SemesterTable({ data, editable, onPatch }: {
+export function SemesterTable({ data, editable, onPatch, etfs, onIsinSaved }: {
   data: SemesterData
   editable: boolean
   onPatch: (etfId: string, patch: Record<string, number | null>) => void
+  /** When provided, the ETF name becomes a link to the live-details dialog. */
+  etfs?: Etf[]
+  onIsinSaved?: () => void
 }) {
   const { rows, totals } = data
+  const etfById = new Map((etfs ?? []).map((e) => [e.id, e]))
   // A fund whose raw share (targetPct + bilanciamento) is negative was floored
   // to 0 and its budget redistributed — flag it even though nuovoPac shows 0.
   const hasCappedPac = rows.some((r) => r.bilanciamento != null && r.targetPct + r.bilanciamento < 0)
@@ -108,7 +113,11 @@ export function SemesterTable({ data, editable, onPatch }: {
         <tbody>
           {rows.map((r: EtfComputed, i) => (
             <tr key={`${r.semesterId}:${r.etfId}`} className={cn('border-b border-border/60', i % 2 && 'bg-muted/20')}>
-              <td className="whitespace-nowrap px-3 py-2 text-left font-semibold">{r.name}</td>
+              <td className="whitespace-nowrap px-3 py-2 text-left font-semibold">
+                {etfById.has(r.etfId) && onIsinSaved
+                  ? <EtfDetail etf={etfById.get(r.etfId)!} onIsinSaved={onIsinSaved} />
+                  : r.name}
+              </td>
               <TD className="font-semibold">{fmtPct(r.targetPct)}</TD>
               <TD>{fmtEur(r.totVersatoOggi)}</TD>
               <TD>
